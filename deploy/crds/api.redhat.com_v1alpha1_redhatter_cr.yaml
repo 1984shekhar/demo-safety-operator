@@ -3,8 +3,8 @@ kind: RedHatter
 metadata:
   name: example-redhatter
 spec:
-  EmployeeName: Abhishek
-  EmployeeStatus: Quarantine
-  IsCovidThere: true
+  empoyeename: Abhishek
+  employeestatus: Quarantine
+  iscovidthere: true
 
 

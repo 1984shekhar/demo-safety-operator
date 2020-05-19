@@ -86,7 +86,10 @@ func (r *ReconcileRedHatter) Reconcile(request reconcile.Request) (reconcile.Res
 			// Request object not found, could have been deleted after reconcile request.
 			// Owned objects are automatically garbage collected. For additional cleanup logic use finalizers.
 			// Return and don't requeue
-			instance.Spec.EmployeeName = "Abhishek"
+			if instance.Spec.EmployeeName == "" {
+				instance.Spec.EmployeeName = "Abhishek"
+			}
+
 			instance.Spec.EmployeeStatus = "Quarantine"
 			r.configMapReconcile(instance, request)
 
@@ -97,8 +100,14 @@ func (r *ReconcileRedHatter) Reconcile(request reconcile.Request) (reconcile.Res
 		return reconcile.Result{}, err
 	}
 
+
+	if instance.Spec.EmployeeName == "" {
+		instance.Spec.EmployeeName = "Abhishek"
+	}
+
 	//Setting instance
 	instance.Spec.IsCovidThere = true
+
 	if instance.Spec.IsCovidThere == false {
 		instance.Spec.EmployeeStatus = "Party"
 	} else {
@@ -107,6 +116,8 @@ func (r *ReconcileRedHatter) Reconcile(request reconcile.Request) (reconcile.Res
 
 	log.Info(instance.Kind)
 
+
+	//configmap
 	r.configMapReconcile(instance, request)
 
 	//update instance
@@ -122,10 +133,24 @@ func (r *ReconcileRedHatter) Reconcile(request reconcile.Request) (reconcile.Res
 		return reconcile.Result{}, err
 	}
 
+	configMap := r.configMapDef(instance, request)
+
+	err = r.client.Update(context.TODO(), configMap)
+	if err != nil {
+		if errors.IsNotFound(err) {
+			// Request object not found, could have been deleted after reconcile request.
+			// Owned objects are automatically garbage collected. For additional cleanup logic use finalizers.
+			// Return and don't requeue
+			return reconcile.Result{}, nil
+		}
+		// Error reading the object - requeue the request.
+		return reconcile.Result{}, err
+	}
+
 	return reconcile.Result{}, nil
 }
 
-func (r *ReconcileRedHatter) configMapReconcile(instance *apiv1alpha1.RedHatter, request reconcile.Request) (reconcile.Result, error) {
+func (r *ReconcileRedHatter) configMapDef(instance *apiv1alpha1.RedHatter, request reconcile.Request) *v1.ConfigMap {
 	data := map[string]string{
 		"name":   instance.Spec.EmployeeName,
 		"status": instance.Spec.EmployeeStatus,
@@ -137,11 +162,17 @@ func (r *ReconcileRedHatter) configMapReconcile(instance *apiv1alpha1.RedHatter,
 		Data:       data,
 		BinaryData: nil,
 	}
-	configMap.Name = "summit-site-apac-map"
-	configMap.Namespace = request.Namespace
+	configMap.Name = instance.Name
+	configMap.Namespace = instance.Namespace
+	return configMap
+}
+
+func (r *ReconcileRedHatter) configMapReconcile(instance *apiv1alpha1.RedHatter, request reconcile.Request) (reconcile.Result, error) {
+	configMap := r.configMapDef(instance, request)
+
 	key := client.ObjectKey{
-		Namespace: request.Namespace,
-		Name:      "summit-site-apac-map",
+		Namespace: instance.Namespace,
+		Name:     instance.Name ,
 	}
 
 	err := r.client.Get(context.TODO(), key, configMap)
