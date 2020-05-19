@@ -1,0 +1,10 @@
+apiVersion: api.redhat.com/v1alpha1
+kind: RedHatter
+metadata:
+  name: example-redhatter
+spec:
+  EmployeeName: Abhishek
+  EmployeeStatus: Quarantine
+  IsCovidThere: true
+
+
